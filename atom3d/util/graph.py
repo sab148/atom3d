@@ -80,13 +80,16 @@ def mol_df_to_graph(df, bonds=None, allowable_atoms=None, edge_dist_cutoff=4.5, 
     if allowable_atoms is None:
         allowable_atoms = mol_atoms
     node_pos = torch.FloatTensor(df[['x', 'y', 'z']].to_numpy())
+    
+    
     N = df.shape[0]
     bond_mapping = {1.0: 0, 2.0: 1, 3.0: 2, 1.5: 3}
     
     if bonds is not None:
-        bond_data = torch.FloatTensor(bonds.to_numpy())
+        bond_data = torch.FloatTensor(bonds)
         edge_tuples = torch.cat((bond_data[:, :2], torch.flip(bond_data[:, :2], dims=(1,))), dim=0)
         edge_index = edge_tuples.t().long().contiguous()
+        
         if onehot_edges:
             bond_idx = list(map(lambda x: bond_mapping[x], bond_data[:,-1].tolist())) + list(map(lambda x: bond_mapping[x], bond_data[:,-1].tolist()))
             edge_attr = F.one_hot(torch.tensor(bond_idx), num_classes=4).to(torch.float)

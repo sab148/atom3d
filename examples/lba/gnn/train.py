@@ -11,8 +11,9 @@ import torch.nn.functional as F
 from torch_geometric.data import DataLoader
 from model import GNN_LBA
 from data import GNNTransformLBA
-from atom3d.datasets import LMDBDataset, PTGDataset
+from atom3d.datasets import LMDBDataset, PTGDataset, MolH5Dataset
 from scipy.stats import spearmanr
+
 
 def train_loop(model, loader, optimizer, device):
     model.train()
@@ -150,6 +151,13 @@ if __name__=="__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     log_dir = args.log_dir
 
+    PATH_TO_DATA = "/p/project/hai_drug_qm/Dataset/paris/DB/qm.hdf5"
+    train_dataset = MolH5Dataset(PATH_TO_DATA, transform=None)
+    dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+
+    for batch in dataloader:
+        in_dim = batch.num_features
+        break
 
     if args.mode == 'train':
         if log_dir is None:

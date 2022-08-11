@@ -11,9 +11,11 @@ import pickle as pkl
 import tqdm
 import urllib.request
 import subprocess
+import pickle 
 
-import Bio.PDB
-import lmdb
+#import Bio.PDB
+#import lmdb
+import h5py
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, IterableDataset
@@ -26,9 +28,194 @@ except:
 
 import atom3d.util.rosetta as ar
 import atom3d.util.file as fi
-import atom3d.util.formats as fo
+#import atom3d.util.formats as fo
+from atom3d.util.transforms import mol_graph_transform, prot_graph_transform
+import atom3d.util.graph as gr
+
+from torch_geometric.data import Data
 
 logger = logging.getLogger(__name__)
+
+class ProtMolH5Dataset(Dataset):
+    """
+    Creates a dataset from an h5 file. Adapted from `TAPE <https://github.com/songlab-cal/tape/blob/master/tape/datasets.py>`_.
+
+    :param data_file: path to h5 file containing dataset
+    :type data_file: Union[str, Path]
+    :param transform: Transformation function to apply to each item.
+    :type transform: Function, optional
+
+    """
+
+    def __init__(self, qm_data_file, md_data_file, idx_file, use_bonds=True, transform=None):
+        """constructor
+
+        """
+        self.qm_data_file = Path(qm_data_file).absolute()
+        self.md_data_file = Path(md_data_file).absolute()
+
+
+        if not self.qm_data_file.exists():
+            raise FileNotFoundError(self.qm_data_file)
+
+        if not self.md_data_file.exists():
+            raise FileNotFoundError(self.md_data_file)
+
+        with open(idx_file, 'r') as f:  # this file will keep all complexe
+            self.ids = f.read().splitlines()
+
+        with open("/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
+            self.atoms_type_name = list(pickle.load(f).keys())
+
+        self.use_bonds = use_bonds
+        self._transform = transform
+
+
+
+    def __len__(self) -> int:
+        return len(self.ids) * 100
+
+    def get(self, id: str):
+        return self.data[id][:]
+
+    def __getitem__(self, index: int):
+        if not 0 <= (index // 100) < len(self.ids):
+            raise IndexError(index)
+
+        pdb_idx = index // 100 
+        item = {}
+        # try :
+        with h5py.File(self.md_data_file, 'r') as f: 
+            pitem = f[self.ids[pdb_idx]]
+            cutoff = pitem["molecules_begin_atom_index"][:][-1]
+                
+            column_names = ["x", "y", "z", "element"]
+
+            atoms_protein = pd.DataFrame(columns = column_names)
+
+            atoms_ligand = pd.DataFrame(columns = column_names)
+
+            atoms_protein["x"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 0]
+            atoms_protein["y"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 1]
+            atoms_protein["z"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 2]
+            atoms_protein["element"] = pitem["atoms_type"][:][:cutoff]
+
+            atoms_ligand["x"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 0]
+            atoms_ligand["y"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 1]
+            atoms_ligand["z"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 2]
+            atoms_ligand["element"] = pitem["atoms_type"][:][-cutoff:]
+
+            item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
+
+            node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(atoms_protein, allowable_feats=self.atoms_type_name)
+            item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+            
+        with h5py.File(self.qm_data_file, 'r') as f: 
+            pitem = f[self.ids[pdb_idx]]
+        
+            if self.use_bonds:
+                bonds = pitem["atom_properties/bonds"][:]
+            else:
+                bonds = None
+            node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(atoms_ligand, bonds=bonds, onehot_edges=False, allowable_atoms=self.atoms_type_name)
+            item["atoms_ligand"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+                
+    #    transform ligand into PTG graph
+
+        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
+        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
+            
+            
+
+        if self._transform:
+            item = self._transform(item)
+
+        # except Exception as e:
+        #     print(e)
+        #     print(self.ids[pdb_idx])
+            
+            
+        return combined_graph
+
+
+
+class MolH5Dataset(Dataset):
+    """
+    Creates a dataset from an h5 file. Adapted from `TAPE <https://github.com/songlab-cal/tape/blob/master/tape/datasets.py>`_.
+
+    :param data_file: path to h5 file containing dataset
+    :type data_file: Union[str, Path]
+    :param transform: Transformation function to apply to each item.
+    :type transform: Function, optional
+
+    """
+
+    def __init__(self, data_file, idx_file, transform=None):
+        """constructor
+
+        """
+        if type(data_file) is list:
+            if len(data_file) != 1:
+                raise RuntimeError("Need exactly one filepath for h5")
+            data_file = data_file[0]
+
+        self.data_file = Path(data_file).absolute()
+        if not self.data_file.exists():
+            raise FileNotFoundError(self.data_file)
+
+        with open(idx_file, 'r') as f:  # this file will keep all complexe
+            self.ids = f.read().splitlines()
+
+        self._transform = transform
+
+    def __len__(self) -> int:
+        return len(self.ids)
+
+    def get(self, id: str):
+        return self.data[id][:]
+
+    def __getitem__(self, index: int):
+        if not 0 <= index < len(self.ids):
+            raise IndexError(index)
+
+        try :
+            with h5py.File(self.data_file, 'r') as f: 
+                pitem = f[self.ids[index]]
+                
+                column_names = ["x", "y", "z", "element"]
+
+                atoms = pd.DataFrame(columns = column_names)
+                atoms["x"] = pitem["atom_properties/data"][:][:,1]
+                
+                atoms["y"] = pitem["atom_properties/data"][:][:,2]
+                
+                atoms["z"] = pitem["atom_properties/data"][:][:,3]
+                
+                atoms["element"] = pitem["atom_properties/data"][:][:,0]
+
+                bonds = pitem["atom_properties/bonds"][:]
+                
+                scores = {"Electron_Affinity": torch.tensor(pitem["mol_properties/data"])[1],
+                    "Electronegativity" : torch.tensor(pitem["mol_properties/data"])[2],
+                    "Hardness" : torch.tensor(pitem["mol_properties/data"])[3],
+                    "Ionization_Potential" : torch.tensor(pitem["mol_properties/data"])[4],
+                    "Koopman" : torch.tensor(pitem["mol_properties/data"])[5]
+                    }
+
+            item = {"atoms" : atoms,
+            "scores": scores,
+            "bonds": bonds}
+            item = mol_graph_transform(item, "atoms", "scores", use_bonds=True, onehot_edges=True)
+            
+            if self._transform:
+                item = self._transform(item)
+
+        except :
+            print(self.ids[index])
+            
+            
+        return item["atoms"]
+
 
 
 class LMDBDataset(Dataset):
@@ -385,7 +572,7 @@ def deserialize(x, serialization_format):
 
 
 def get_file_list(input_path, filetype):
-    if filetype == 'lmdb':
+    if filetype == 'lmdb' or 'h5':
         file_list = [input_path]
     elif os.path.isfile(input_path):
         with open(input_path) as f:
@@ -422,7 +609,9 @@ def load_dataset(file_list, filetype, transform=None, include_bonds=False, add_H
     if type(file_list) != list:
         file_list = get_file_list(file_list, filetype)
 
-    if filetype == 'lmdb':
+    if filetype == 'molh5':
+        dataset = MolH5Dataset(file_list, transform=transform)
+    elif filetype == 'lmdb':
         dataset = LMDBDataset(file_list, transform=transform)
     elif (filetype == 'pdb') or (filetype == 'pdb.gz'):
         dataset = PDBDataset(file_list, transform=transform)

@@ -98,3 +98,5 @@ atom3d/data/__pycache__/
 # Model output
 examples/???/???/model/
 examples/???/???/predict/
+
+sc_venv_template/

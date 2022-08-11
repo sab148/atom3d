@@ -68,8 +68,8 @@ def mol_graph_transform(item, atom_key='atoms', label_key='scores', allowable_at
     else:
         bonds = None
     node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(item[atom_key], bonds=bonds, onehot_edges=onehot_edges, allowable_atoms=allowable_atoms)
+    # item[atom_key] = Data(node_feats, edge_index, edge_feats, y=item[label_key], pos=pos)
     item[atom_key] = Data(node_feats, edge_index, edge_feats, y=item[label_key], pos=pos)
-
     return item
 
 def voxel_transform(item, grid_config, rot_mat=None, center_fn=vox.get_center, random_seed=None, structure_keys=['atoms']):
