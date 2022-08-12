@@ -119,7 +119,7 @@ def train(args, device, log_dir, rep=None, test_mode=False):
         start = time.time()
         train_loss = train_loop(model, train_loader, optimizer, device)
         val_loss, r_p, r_s, y_true, y_pred = test(model, val_loader, device)
-        if val_loss < best_val_loss:
+        if epoch % 10 == 0:
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
@@ -127,9 +127,9 @@ def train(args, device, log_dir, rep=None, test_mode=False):
                 'loss': train_loss,
                 }, os.path.join(log_dir, f'best_weights_rep{rep}.pt'))
             # plot_corr(y_true, y_pred, os.path.join(log_dir, f'corr_{split}.png'))
-            best_val_loss = val_loss
-            best_rp = r_p
-            best_rs = r_s
+            # best_val_loss = val_loss
+            # best_rp = r_p
+            # best_rs = r_s
         elapsed = (time.time() - start)
         print('Epoch: {:03d}, Time: {:.3f} s'.format(epoch, elapsed))
         print('\tTrain RMSE: {:.7f}, Val RMSE: {:.7f}, Pearson R: {:.7f}, Spearman R: {:.7f}'.format(train_loss, val_loss, r_p, r_s))

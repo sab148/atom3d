@@ -93,23 +93,24 @@ def train(args, device, log_dir, rep=None, test_mode=False):
                                                            factor=0.7, patience=3,
                                                            min_lr=0.00001)
 
-    for epoch in tqdm(range(1, args.num_epochs+1)):
-        start = time.time()
-        train_loss = train_loop(model, train_loader, optimizer, device)
-        print('validating...')
-        val_loss,  _,_ = test(model, val_loader, device)
-        scheduler.step(val_loss)
-        if epoch % 10 == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': train_loss,
-                }, os.path.join(log_dir, f'best_weights_rep{rep}.pt'))
-            # best_val_loss = val_loss
-        elapsed = (time.time() - start)
-        print('Epoch: {:03d}, Time: {:.3f} s'.format(epoch, elapsed))
-        print('\tTrain Loss: {:.7f}, Val MAE: {:.7f}'.format(train_loss, val_loss))
+    # for epoch in tqdm(range(1, args.num_epochs+1)):
+    #     start = time.time()
+    #     train_loss = train_loop(model, train_loader, optimizer, device)
+    #     print('validating...')
+    #     val_loss,  _,_ = test(model, val_loader, device)
+    #     scheduler.step(val_loss)
+    #     if val_loss < best_val_loss:
+    #         print("saving ...")
+    #         torch.save({
+    #             'epoch': epoch,
+    #             'model_state_dict': model.state_dict(),
+    #             'optimizer_state_dict': optimizer.state_dict(),
+    #             'loss': train_loss,
+    #             }, os.path.join(log_dir, f'best_weights_rep{rep}.pt'))
+    #         best_val_loss = val_loss
+    #     elapsed = (time.time() - start)
+    #     print('Epoch: {:03d}, Time: {:.3f} s'.format(epoch, elapsed))
+    #     print('\tTrain Loss: {:.7f}, Val MAE: {:.7f}'.format(train_loss, val_loss))
 
     if test_mode:
         train_file = os.path.join(log_dir, f'smp-rep{rep}.best.train.pt')
@@ -131,7 +132,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--target_name', type=str)
-    parser.add_argument('--mode', type=str, default='train')
+    parser.add_argument('--mode', type=str, default='test')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--hidden_dim', type=int, default=64)
     parser.add_argument('--num_epochs', type=int, default=100)

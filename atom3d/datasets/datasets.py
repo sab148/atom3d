@@ -36,6 +36,107 @@ from torch_geometric.data import Data
 
 logger = logging.getLogger(__name__)
 
+class NativeProtMolH5Dataset(Dataset):
+    """
+    Creates a dataset from an h5 file. Adapted from `TAPE <https://github.com/songlab-cal/tape/blob/master/tape/datasets.py>`_.
+
+    :param data_file: path to h5 file containing dataset
+    :type data_file: Union[str, Path]
+    :param transform: Transformation function to apply to each item.
+    :type transform: Function, optional
+
+    """
+
+    def __init__(self, qm_data_file, md_data_file, idx_file, use_bonds=True, transform=None):
+        """constructor
+
+        """
+        self.qm_data_file = Path(qm_data_file).absolute()
+        self.md_data_file = Path(md_data_file).absolute()
+
+
+        if not self.qm_data_file.exists():
+            raise FileNotFoundError(self.qm_data_file)
+
+        if not self.md_data_file.exists():
+            raise FileNotFoundError(self.md_data_file)
+
+        with open(idx_file, 'r') as f:  # this file will keep all complexe
+            self.ids = f.read().splitlines()
+
+        with open("/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
+            self.atoms_type_name = list(pickle.load(f).keys())
+
+        self.use_bonds = use_bonds
+        self._transform = transform
+
+
+
+    def __len__(self) -> int:
+        return len(self.ids)
+
+    def get(self, id: str):
+        return self.data[id][:]
+
+    def __getitem__(self, index: int):
+        if not 0 <= (index) < len(self.ids):
+            raise IndexError(index)
+
+        pdb_idx = index
+        item = {}
+        # try :
+        with h5py.File(self.md_data_file, 'r') as f: 
+            pitem = f[self.ids[pdb_idx]]
+            cutoff = pitem["molecules_begin_atom_index"][:][-1]
+                
+            column_names = ["x", "y", "z", "element"]
+
+            atoms_protein = pd.DataFrame(columns = column_names)
+
+            atoms_ligand = pd.DataFrame(columns = column_names)
+
+            atoms_protein["x"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 0]
+            atoms_protein["y"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 1]
+            atoms_protein["z"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 2]
+            atoms_protein["element"] = pitem["atoms_type"][:][:cutoff]
+
+            atoms_ligand["x"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 0]
+            atoms_ligand["y"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 1]
+            atoms_ligand["z"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 2]
+            atoms_ligand["element"] = pitem["atoms_type"][:][-cutoff:]
+
+            item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
+
+            node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(atoms_protein, allowable_feats=self.atoms_type_name)
+            item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+            
+        with h5py.File(self.qm_data_file, 'r') as f: 
+            pitem = f[self.ids[pdb_idx]]
+        
+            if self.use_bonds:
+                bonds = pitem["atom_properties/bonds"][:]
+            else:
+                bonds = None
+            node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(atoms_ligand, bonds=bonds, onehot_edges=False, allowable_atoms=self.atoms_type_name)
+            item["atoms_ligand"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+                
+    #    transform ligand into PTG graph
+
+        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
+        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
+            
+            
+
+        if self._transform:
+            item = self._transform(item)
+
+        # except Exception as e:
+        #     print(e)
+        #     print(self.ids[pdb_idx])
+            
+            
+        return combined_graph
+
 class ProtMolH5Dataset(Dataset):
     """
     Creates a dataset from an h5 file. Adapted from `TAPE <https://github.com/songlab-cal/tape/blob/master/tape/datasets.py>`_.
@@ -137,8 +238,6 @@ class ProtMolH5Dataset(Dataset):
             
         return combined_graph
 
-
-
 class MolH5Dataset(Dataset):
     """
     Creates a dataset from an h5 file. Adapted from `TAPE <https://github.com/songlab-cal/tape/blob/master/tape/datasets.py>`_.
@@ -209,12 +308,13 @@ class MolH5Dataset(Dataset):
             
             if self._transform:
                 item = self._transform(item)
-
+                
+            return item["atoms"]
         except :
             print(self.ids[index])
             
             
-        return item["atoms"]
+        
 
 
 

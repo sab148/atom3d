@@ -1,0 +1,32 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) Stages/2022
+Setting HOROVOD_MPI_THREADS_DISABLE=1. 
+/var/spool/parastation/jobs/5989079: line 15: CUDA_VISIBLE_DEVICES: command not found
+/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/dataloader.py:487: UserWarning: This DataLoader will create 4 worker processes in total. Our suggested max number of worker in current system is 2, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+Traceback (most recent call last):
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/gnn/train.py", line 165, in <module>
+    train(args, device, log_dir, rep, test_mode=True)
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/gnn/train.py", line 80, in train
+    for data in train_loader:     
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 530, in __next__
+    data = self._next_data()
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1224, in _next_data
+    return self._process_data(data)
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1250, in _process_data
+    data.reraise()
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/_utils.py", line 457, in reraise
+    raise exception
+TypeError: Caught TypeError in DataLoader worker process 0.
+Original Traceback (most recent call last):
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/_utils/worker.py", line 287, in _worker_loop
+    data = fetcher.fetch(index)
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch/1.11-gcccoremkl-11.2.0-2021.4.0-CUDA-11.5/lib/python3.9/site-packages/torch/utils/data/_utils/fetch.py", line 52, in fetch
+    return self.collate_fn(data)
+  File "/p/software/juwelsbooster/stages/2022/software/PyTorch-Geometric/2.0.4-gcccoremkl-11.2.0-2021.4.0/lib/python3.9/site-packages/torch_geometric/loader/dataloader.py", line 36, in __call__
+    raise TypeError(f'DataLoader found invalid type: {type(elem)}')
+TypeError: DataLoader found invalid type: <class 'NoneType'>
+
+srun: error: jwb0001: task 0: Exited with exit code 1

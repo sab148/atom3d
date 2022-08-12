@@ -144,7 +144,8 @@ if __name__=="__main__":
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
         train(args, device, log_dir)
-        
+
+    
     elif args.mode == 'test':
         for rep, seed in enumerate(np.random.randint(0, 1000, size=3)):
             print('seed:', seed)
