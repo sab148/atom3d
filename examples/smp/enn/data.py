@@ -7,7 +7,9 @@ import scipy.spatial
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
-from atom3d.datasets import LMDBDataset, extract_coordinates_as_numpy_arrays
+# from atom3d.datasets import LMDBDataset
+import atom3d.util.formats as fo
+from atom3d.datasets import LMDBDataset
 from utils import batch_stack, drop_zeros
 
 
@@ -136,8 +138,9 @@ def initialize_smp_data(args, datadir, splits = {'train':'train', 'valid':'val',
 
     """
     # Define data files.
-    datafiles = {split: os.path.join(datadir,splits[split]) for split in splits.keys()}
+    # datafiles = {split: os.path.join(datadir,splits[split]) for split in splits.keys()}
     # Load datasets
+    datafiles = {"train" : datadir}
     datasets = _load_smp_data(datafiles)
     # Check the training/test/validation splits have the same set of keys.
     keys = [list(data.keys()) for data in datasets.values()]
@@ -159,6 +162,69 @@ def initialize_smp_data(args, datadir, splits = {'train':'train', 'valid':'val',
     args.num_test = datasets['test'].num_pts
     return args, datasets, num_species, max_charge
 
+def extract_coordinates_as_numpy_arrays(dataset, indices=None, atom_frames=['atoms'], drop_elements=[]):
+    """Convert the molecules from a dataset to a dictionary of numpy arrays.
+       Labels are not processed; they are handled differently for every dataset.
+
+    :param dataset: LMDB dataset from which to extract coordinates.
+    :type dataset: torch.utils.data.Dataset
+    :param indices: Indices of the items for which to extract coordinates.
+    :type indices: numpy.array
+
+    :return: Dictionary of numpy arrays with number of atoms, charges, and positions
+    :rtype: dict
+    """
+    print("strating")
+    print(len(dataset))
+    # Size of the dataset
+    if indices is None:
+        indices = np.arange(len(dataset), dtype=int)
+    else:
+        indices = np.array(indices, dtype=int)
+        assert len(dataset) > max(indices)
+    num_items = len(indices)
+    print("num_items,", num_items)
+    # Calculate number of atoms for each molecule
+    num_atoms = []
+    for idx in indices:
+        item = dataset[idx]
+        atoms = pd.concat([item[frame] for frame in atom_frames])
+        keep = np.array([el not in drop_elements for el in atoms['element']])
+        num_atoms.append(sum(keep))
+    num_atoms = np.array(num_atoms, dtype=int)
+    print("num_atoms", num_atoms)
+    # All charges and position arrays have the same size
+    arr_size  = np.max(num_atoms)
+    charges   = np.zeros([num_items,arr_size])
+    positions = np.zeros([num_items,arr_size,3])
+    # For each molecule and each atom...
+    for j,idx in enumerate(indices):
+        item = dataset[idx]
+        # concatenate atoms from all desired frames
+        all_atoms = [item[frame] for frame in atom_frames]
+        atoms = pd.concat(all_atoms, ignore_index=True)
+        # only keep atoms that are not one of the elements to drop
+        keep = np.array([el not in drop_elements for el in atoms['element']])
+        atoms_to_keep = atoms[keep].reset_index(drop=True)
+        # write per-atom data to arrays
+        for ia in range(num_atoms[j]):
+            print("atoms_to_keep", atoms_to_keep)
+            print("ia", ia)
+            print("atoms_to_keep['element'][ia].title()", atoms_to_keep['element'][ia].title())
+            element = atoms_to_keep['element'][ia].title()
+            print("element", element)
+            print("charges", charges)
+            print("fo.atomic_number", fo.atomic_number)
+            charges[j,ia] = fo.atomic_number[element]
+            positions[j,ia,0] = atoms_to_keep['x'][ia]
+            positions[j,ia,1] = atoms_to_keep['y'][ia]
+            positions[j,ia,2] = atoms_to_keep['z'][ia]
+
+    # Create a dictionary with all the arrays
+    numpy_dict = {'index': indices, 'num_atoms': num_atoms,
+                  'charges': charges, 'positions': positions}
+
+    return numpy_dict
 
 def _load_smp_data(datafiles):
     """
@@ -177,9 +243,14 @@ def _load_smp_data(datafiles):
     """
     datasets = {}
     for split, datafile in datafiles.items():
+        print(split)
         dataset = LMDBDataset(datafile)
+        print("dataset created")
+        
         # Load original atoms
+        print("extraction")
         dsdict = extract_coordinates_as_numpy_arrays(dataset, atom_frames=['atoms'])
+        print("extraction done")
         # Add the label data
         labels = np.zeros([len(label_names),len(dataset)])
         for i, item in enumerate(dataset):

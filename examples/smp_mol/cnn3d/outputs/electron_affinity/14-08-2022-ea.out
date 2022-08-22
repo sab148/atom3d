@@ -1,0 +1,213 @@
+The activation script must be sourced, otherwise the virtual environment will not work.
+Setting vars
+Creating output directory /p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/smp/0
+Running mode test with seed 4232857 and output dir /p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/smp/0
+Training model with config:
+{
+    "data_dir": null,
+    "mode": "test",
+    "output_dir": "/p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/smp/0",
+    "unobserved": false,
+    "label_name": "Electron_Affinity",
+    "learning_rate": 0.0005,
+    "conv_drop_rate": 0.1,
+    "fc_drop_rate": 0.25,
+    "num_epochs": 50,
+    "num_conv": 4,
+    "batch_norm": false,
+    "no_dropout": false,
+    "batch_size": 256,
+    "random_seed": 4232857
+}
+
+num channels: 5, spatial size: 16
+CNN3D_SMP(
+  (model): Sequential(
+    (0): Conv3d(5, 32, kernel_size=(3, 3, 3), stride=(1, 1, 1))
+    (1): ReLU()
+    (2): Dropout(p=0.1, inplace=False)
+    (3): Conv3d(32, 64, kernel_size=(3, 3, 3), stride=(1, 1, 1))
+    (4): ReLU()
+    (5): MaxPool3d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+    (6): Dropout(p=0.1, inplace=False)
+    (7): Conv3d(64, 128, kernel_size=(3, 3, 3), stride=(1, 1, 1))
+    (8): ReLU()
+    (9): Dropout(p=0.1, inplace=False)
+    (10): Conv3d(128, 256, kernel_size=(3, 3, 3), stride=(1, 1, 1))
+    (11): ReLU()
+    (12): MaxPool3d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+    (13): Dropout(p=0.1, inplace=False)
+    (14): Flatten(start_dim=1, end_dim=-1)
+    (15): Linear(in_features=256, out_features=512, bias=True)
+    (16): ReLU()
+    (17): Dropout(p=0.25, inplace=False)
+    (18): Linear(in_features=512, out_features=1, bias=True)
+  )
+)
+
+Save model at epoch 001, val_loss: 4.5469
+
+Epoch 001 finished in : 93.335 s
+	Train RMSE: 4.0514825, Val RMSE: 4.5468627
+
+Save model at epoch 002, val_loss: 4.4037
+
+Epoch 002 finished in : 91.548 s
+	Train RMSE: 3.4010428, Val RMSE: 4.4037413
+
+Epoch 003 finished in : 91.286 s
+	Train RMSE: 3.3954488, Val RMSE: 4.4857426
+
+Epoch 004 finished in : 91.277 s
+	Train RMSE: 3.4100283, Val RMSE: 4.5054896
+
+Epoch 005 finished in : 91.601 s
+	Train RMSE: 3.4167372, Val RMSE: 4.4428552
+
+Epoch 006 finished in : 91.257 s
+	Train RMSE: 3.4142933, Val RMSE: 4.5781151
+
+Epoch 007 finished in : 91.163 s
+	Train RMSE: 3.3892660, Val RMSE: 4.4377290
+
+Epoch 008 finished in : 91.199 s
+	Train RMSE: 3.4115875, Val RMSE: 4.5453145
+
+Epoch 009 finished in : 91.174 s
+	Train RMSE: 3.4087811, Val RMSE: 4.4600100
+
+Epoch 010 finished in : 91.198 s
+	Train RMSE: 3.3976431, Val RMSE: 4.4431365
+
+Save model at epoch 011, val_loss: 4.3843
+
+Epoch 011 finished in : 91.284 s
+	Train RMSE: 3.3918477, Val RMSE: 4.3842794
+
+Save model at epoch 012, val_loss: 4.3593
+
+Epoch 012 finished in : 91.248 s
+	Train RMSE: 3.3881705, Val RMSE: 4.3592642
+
+Epoch 013 finished in : 91.392 s
+	Train RMSE: 3.3925680, Val RMSE: 4.3649099
+
+Epoch 014 finished in : 92.104 s
+	Train RMSE: 3.3864583, Val RMSE: 4.4429104
+
+Epoch 015 finished in : 91.908 s
+	Train RMSE: 3.3906572, Val RMSE: 4.3992252
+
+Epoch 016 finished in : 91.577 s
+	Train RMSE: 3.3853099, Val RMSE: 4.3923243
+
+Epoch 017 finished in : 91.550 s
+	Train RMSE: 3.3905502, Val RMSE: 4.3808797
+
+Epoch 018 finished in : 91.398 s
+	Train RMSE: 3.3779242, Val RMSE: 4.4336463
+
+Epoch 019 finished in : 91.189 s
+	Train RMSE: 3.3965752, Val RMSE: 4.3627267
+
+Save model at epoch 020, val_loss: 4.3546
+
+Epoch 020 finished in : 91.916 s
+	Train RMSE: 3.3967689, Val RMSE: 4.3546118
+
+Epoch 021 finished in : 91.191 s
+	Train RMSE: 3.3864138, Val RMSE: 4.3591509
+
+Epoch 022 finished in : 91.205 s
+	Train RMSE: 3.4124396, Val RMSE: 4.4345561
+
+Epoch 023 finished in : 91.138 s
+	Train RMSE: 3.3970017, Val RMSE: 4.4697828
+
+Epoch 024 finished in : 91.201 s
+	Train RMSE: 3.4060257, Val RMSE: 4.4962699
+
+Epoch 025 finished in : 91.161 s
+	Train RMSE: 3.4054960, Val RMSE: 4.3711928
+
+Save model at epoch 026, val_loss: 4.3519
+
+Epoch 026 finished in : 92.629 s
+	Train RMSE: 3.3839380, Val RMSE: 4.3519016
+
+Epoch 027 finished in : 91.163 s
+	Train RMSE: 3.3995207, Val RMSE: 4.3728732
+
+Epoch 028 finished in : 91.130 s
+	Train RMSE: 3.3816664, Val RMSE: 4.3904203
+
+Save model at epoch 029, val_loss: 4.3425
+
+Epoch 029 finished in : 92.278 s
+	Train RMSE: 3.3967769, Val RMSE: 4.3425273
+
+Save model at epoch 030, val_loss: 4.3398
+
+Epoch 030 finished in : 90.980 s
+	Train RMSE: 3.3938794, Val RMSE: 4.3397888
+
+Epoch 031 finished in : 91.067 s
+	Train RMSE: 3.3981054, Val RMSE: 4.4123240
+
+Epoch 032 finished in : 91.002 s
+	Train RMSE: 3.3855037, Val RMSE: 4.4151596
+
+Epoch 033 finished in : 90.994 s
+	Train RMSE: 3.3852446, Val RMSE: 4.3487363
+
+Epoch 034 finished in : 91.004 s
+	Train RMSE: 3.3918630, Val RMSE: 4.3636050
+
+Epoch 035 finished in : 91.351 s
+	Train RMSE: 3.3865245, Val RMSE: 4.4415147
+
+Epoch 036 finished in : 91.355 s
+	Train RMSE: 3.4026138, Val RMSE: 4.4325549
+
+Epoch 037 finished in : 91.360 s
+	Train RMSE: 3.3833855, Val RMSE: 4.3420380
+
+Epoch 038 finished in : 91.610 s
+	Train RMSE: 3.3963794, Val RMSE: 4.4312940
+
+Epoch 039 finished in : 91.592 s
+	Train RMSE: 3.3828281, Val RMSE: 4.3462760
+
+Epoch 040 finished in : 91.627 s
+	Train RMSE: 3.3841396, Val RMSE: 4.3523664
+
+Epoch 041 finished in : 91.795 s
+	Train RMSE: 3.3857686, Val RMSE: 4.3944877
+
+Epoch 042 finished in : 91.416 s
+	Train RMSE: 3.3905385, Val RMSE: 4.3422783
+
+Epoch 043 finished in : 91.529 s
+	Train RMSE: 3.3802896, Val RMSE: 4.3452199
+
+Epoch 044 finished in : 91.525 s
+	Train RMSE: 3.3832894, Val RMSE: 4.4216242
+
+Epoch 045 finished in : 91.336 s
+	Train RMSE: 3.3773200, Val RMSE: 4.3716490
+
+Epoch 046 finished in : 91.469 s
+	Train RMSE: 3.3978136, Val RMSE: 4.3452721
+
+Epoch 047 finished in : 91.315 s
+	Train RMSE: 3.4023207, Val RMSE: 4.4198231
+
+Epoch 048 finished in : 91.488 s
+	Train RMSE: 3.3853617, Val RMSE: 4.3716427
+
+Epoch 049 finished in : 91.397 s
+	Train RMSE: 3.3875202, Val RMSE: 4.3533041
+
+Epoch 050 finished in : 91.303 s
+	Train RMSE: 3.3715976, Val RMSE: 4.3495340
+Test RMSE: 2.7063230

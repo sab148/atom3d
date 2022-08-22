@@ -1,0 +1,23 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) Stages/2022
+Setting HOROVOD_MPI_THREADS_DISABLE=1. 
+/var/spool/parastation/jobs/6004025: line 15: CUDA_VISIBLE_DEVICES: command not found
+Beginning training on CUDA/GPU! Device: 0
+Traceback (most recent call last):
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/train.py", line 63, in <module>
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/train.py", line 33, in main
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/data.py", line 148, in initialize_smp_data
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/data.py", line 189, in _load_smp_data
+  File "/p/project/hai_drug_qm/atom3d/atom3d/datasets/datasets.py", line 831, in extract_coordinates_as_numpy_arrays
+  File "/p/project/hai_drug_qm/atom3d/atom3d/datasets/datasets.py", line 280, in __getitem__
+  File "/p/software/juwelsbooster/stages/2022/software/h5py/3.5.0-GCCcore-11.2.0-serial/lib/python3.9/site-packages/h5py/_hl/files.py", line 507, in __init__
+    fid = make_fid(name, mode, userblock_size, fapl, fcpl, swmr=swmr)
+  File "/p/software/juwelsbooster/stages/2022/software/h5py/3.5.0-GCCcore-11.2.0-serial/lib/python3.9/site-packages/h5py/_hl/files.py", line 220, in make_fid
+    fid = h5f.open(name, flags, fapl=fapl)
+  File "h5py/_objects.pyx", line 54, in h5py._objects.with_phil.wrapper
+  File "h5py/_objects.pyx", line 55, in h5py._objects.with_phil.wrapper
+  File "h5py/h5f.pyx", line 106, in h5py.h5f.open
+OSError: Unable to open file (can't retrieve stat info for file)
+srun: error: jwb0085: task 0: Exited with exit code 1

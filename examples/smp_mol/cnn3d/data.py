@@ -18,13 +18,7 @@ class CNN3D_TransformSMP(object):
         self.random_seed = random_seed
         self.grid_config =  dotdict({
             # Mapping from elements to position in channel dimension.
-            'element_mapping': {
-                'H': 0,
-                'C': 1,
-                'O': 2,
-                'N': 3,
-                'F': 4,
-            },
+            'element_mapping': {'H': 0, 'C': 1, 'O': 2, 'N': 3, 'F': 4, 'P': 5, 'S': 6, 'Cl': 7, 'B': 8, 'Br': 9, 'Cu': 10, 'I': 11, 'Fe': 12, 'Be': 13, 'Se': 14, 'Ru': 15, 'As': 16, 'Si': 17, 'Co': 18, 'Mg': 19, 'Zn': 20, 'Ir': 21, 'V': 22, 'Pt': 23, 'Os': 24, 'Re': 25, 'Sb': 26, 'Rh': 27, 'Te': 28},
             # Radius of the grids to generate, in angstroms.
             'radius': 7.5,
             # Resolution of each voxel, in angstroms.
@@ -39,6 +33,7 @@ class CNN3D_TransformSMP(object):
 
     def _voxelize(self, atoms):
         # Use center of molecule as subgrid center
+        
         pos = atoms[['x', 'y', 'z']].astype(np.float32)
         center = get_center(pos)
         # Generate random rotation matrix
@@ -52,13 +47,10 @@ class CNN3D_TransformSMP(object):
 
     def _lookup_label(self, item, name):
         if 'label_mapping' not in self.__dict__:
-            label_mapping = [
-                'A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve',
-                'u0', 'u298', 'h298', 'g298', 'cv',
-                'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom', 'cv_atom',
-                ]
+            label_mapping = ["Electron_Affinity", "Electronegativity", "Hardness", "Ionization_Potential", "Koopman", "MW", "Polarisability"]
             self.label_mapping = {k: v for v, k in enumerate(label_mapping)}
-        return item['labels'][self.label_mapping[name]]
+        # return item['labels'][self.label_mapping[name]]
+        return item['labels'][name]
 
     def __call__(self, item):
         # Transform molecule into voxel grids.

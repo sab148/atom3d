@@ -22,19 +22,19 @@ class GNNTransformSMP(object):
         
     def _lookup_label(self, item, name):
         if 'label_mapping' not in self.__dict__:
-            label_mapping = [
-                'A', 'B', 'C', 'mu', 'alpha', 'homo', 'lumo', 'gap', 'r2', 'zpve',
-                'u0', 'u298', 'h298', 'g298', 'cv',
-                'u0_atom', 'u298_atom', 'h298_atom', 'g298_atom', 'cv_atom',
-                ]
+            label_mapping = ["gfn2_polarisation", "gfn2_polarisation_(wet_octanol)", "gfn2_polarisation_(water)"]
             self.label_mapping = {k: v for v, k in enumerate(label_mapping)}
-        return (item['labels'][self.label_mapping[name]] - label_mean[name]) / label_std[name]
+        # return (item['labels'][self.label_mapping[name]] - label_mean[name]) / label_std[name]
+        
+        return torch.Tensor(item["labels"][name])
 
     def __call__(self, item):
         item = mol_graph_transform(item, 'atoms', 'labels', allowable_atoms=['C', 'H', 'O', 'N', 'F'], use_bonds=True, onehot_edges=True)
         graph = item['atoms']
-        x2 = torch.tensor(item['atom_feats'], dtype=torch.float).t().contiguous()
-        graph.x = torch.cat([graph.x.to(torch.float), x2], dim=-1)
+        print(graph)
+        # x2 = torch.tensor(item['atom_feats'], dtype=torch.float).t().contiguous()
+        # graph.x = torch.cat([graph.x.to(torch.float), x2], dim=-1)
+        graph.x = graph.x.to(torch.float)
         graph.y = self._lookup_label(item, self.label_name)
         graph.id = item['id']
         return graph

@@ -12,7 +12,7 @@ import torch
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from model import GNN_SMP
-# from data import GNNTransformSMP
+from data import GNNTransformSMP
 from atom3d.datasets import LMDBDataset, MolH5Dataset
 
 def train_loop(model, loader, optimizer, device):
@@ -20,19 +20,15 @@ def train_loop(model, loader, optimizer, device):
 
     loss_all = 0
     total = 0
-    try :
-        for data in tqdm(loader):
-            data = data.to(device)
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.mse_loss(output, data.y["Electron_Affinity"])
-            loss.backward()
-            loss_all += loss.item() * data.num_graphs
-            total += data.num_graphs
-            optimizer.step()
-    except Exception as e:
-        print(e)
-        print(data)
+    for data in tqdm(loader):
+        data = data.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.mse_loss(output, data.y)
+        loss.backward()
+        loss_all += loss.item() * data.num_graphs
+        total += data.num_graphs
+        optimizer.step()
     return loss_all / total
 
 @torch.no_grad()
@@ -45,10 +41,10 @@ def test(model, loader, device):
     for data in loader:
         data = data.to(device)
         output=model(data)
-        loss = F.l1_loss(output, data.y["Electron_Affinity"])  # MAE
+        loss = F.l1_loss(output, data.y)  # MAE
         loss_all += loss.item() * data.num_graphs
         total += data.num_graphs
-        y_true.extend([x.item() for x in data.y["Electron_Affinity"]])
+        y_true.extend([x.item() for x in data.y])
         y_pred.extend(output.tolist())
     return loss_all / total, y_true, y_pred
 
@@ -66,9 +62,10 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     val_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/val.txt"
     test_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/test.txt"
 
-    train_dataset = MolH5Dataset(h5_file, train_idx, transform=None)
-    val_dataset = MolH5Dataset(h5_file, val_idx, transform=None)
-    test_dataset = MolH5Dataset(h5_file, test_idx, transform=None)
+    
+    train_dataset = MolH5Dataset(h5_file, train_idx, transform=GNNTransformSMP(args.target_name))
+    val_dataset = MolH5Dataset(h5_file, val_idx, transform=GNNTransformSMP(args.target_name))
+    test_dataset = MolH5Dataset(h5_file, test_idx, transform=GNNTransformSMP(args.target_name))
     
 
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True, num_workers=4)
@@ -76,7 +73,6 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     test_loader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=4)
 
     print("data loaded")
-
     for data in train_loader:     
         # print(data)   
         num_features = data.num_features
@@ -93,24 +89,24 @@ def train(args, device, log_dir, rep=None, test_mode=False):
                                                            factor=0.7, patience=3,
                                                            min_lr=0.00001)
 
-    # for epoch in tqdm(range(1, args.num_epochs+1)):
-    #     start = time.time()
-    #     train_loss = train_loop(model, train_loader, optimizer, device)
-    #     print('validating...')
-    #     val_loss,  _,_ = test(model, val_loader, device)
-    #     scheduler.step(val_loss)
-    #     if val_loss < best_val_loss:
-    #         print("saving ...")
-    #         torch.save({
-    #             'epoch': epoch,
-    #             'model_state_dict': model.state_dict(),
-    #             'optimizer_state_dict': optimizer.state_dict(),
-    #             'loss': train_loss,
-    #             }, os.path.join(log_dir, f'best_weights_rep{rep}.pt'))
-    #         best_val_loss = val_loss
-    #     elapsed = (time.time() - start)
-    #     print('Epoch: {:03d}, Time: {:.3f} s'.format(epoch, elapsed))
-    #     print('\tTrain Loss: {:.7f}, Val MAE: {:.7f}'.format(train_loss, val_loss))
+    for epoch in tqdm(range(1, args.num_epochs+1)):
+        start = time.time()
+        train_loss = train_loop(model, train_loader, optimizer, device)
+        print('validating...')
+        val_loss,  _,_ = test(model, val_loader, device)
+        scheduler.step(val_loss)
+        if val_loss < best_val_loss:
+            print("saving ...")
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': train_loss,
+                }, os.path.join(log_dir, f'best_weights_rep{rep}.pt'))
+            best_val_loss = val_loss
+        elapsed = (time.time() - start)
+        print('Epoch: {:03d}, Time: {:.3f} s'.format(epoch, elapsed))
+        print('\tTrain Loss: {:.7f}, Val MAE: {:.7f}'.format(train_loss, val_loss))
 
     if test_mode:
         train_file = os.path.join(log_dir, f'smp-rep{rep}.best.train.pt')
@@ -131,7 +127,7 @@ def train(args, device, log_dir, rep=None, test_mode=False):
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--target_name', type=str)
+    parser.add_argument('--target_name', type=str, default="Electron_Affinity")
     parser.add_argument('--mode', type=str, default='test')
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--hidden_dim', type=int, default=64)

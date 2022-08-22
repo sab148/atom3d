@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from atom3d.datasets import LMDBDataset
+from atom3d.datasets import LMDBDataset, MolH5Dataset
 
 from model import CNN3D_SMP
 from data import CNN3D_TransformSMP
@@ -109,15 +109,15 @@ def train(args, device, test_mode=False):
     np.random.seed(args.random_seed)
     torch.manual_seed(args.random_seed)
 
-    train_dataset = LMDBDataset(
-        os.path.join(args.data_dir, 'train'),
-        transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
-    val_dataset = LMDBDataset(
-        os.path.join(args.data_dir, 'val'),
-        transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
-    test_dataset = LMDBDataset(
-        os.path.join(args.data_dir, 'test'),
-        transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
+    h5_file = "/p/project/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/h5/qm.hdf5"
+
+    train_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/train.txt"
+    val_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/val.txt"
+    test_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/test.txt"
+
+    train_dataset = MolH5Dataset(h5_file, train_idx, transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
+    val_dataset = MolH5Dataset(h5_file, val_idx, transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
+    test_dataset = MolH5Dataset(h5_file, test_idx, transform=CNN3D_TransformSMP(args.label_name, random_seed=args.random_seed))
 
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, args.batch_size, shuffle=False)
@@ -162,13 +162,13 @@ def train(args, device, test_mode=False):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default=os.environ['SMP_DATA'])
+    parser.add_argument('--data_dir', type=str)#, default=os.environ['SMP_DATA'])
     parser.add_argument('--mode', type=str, default='test',
                         choices=['train', 'test'])
-    parser.add_argument('--output_dir', type=str, default=os.environ['LOG_DIR'])
+    parser.add_argument('--output_dir', type=str, default="/p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/")
     parser.add_argument('--unobserved', action='store_true', default=False)
 
-    parser.add_argument('--label_name', type=str, default='alpha',
+    parser.add_argument('--label_name', type=str, default='Electron_Affinity',
                         help="Label to use, e.g. alpha, u298_atom, etc.")
 
     parser.add_argument('--learning_rate', '-lr', type=float, default=0.0005)

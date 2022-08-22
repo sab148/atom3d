@@ -1,0 +1,4 @@
+The activation script must be sourced, otherwise the virtual environment will not work.
+Setting vars
+seed: 984
+data loaded

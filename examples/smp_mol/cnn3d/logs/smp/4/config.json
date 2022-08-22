@@ -1,0 +1,16 @@
+{
+    "data_dir": null,
+    "mode": "test",
+    "output_dir": "/p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/smp/4",
+    "unobserved": false,
+    "label_name": "Electron_Affinity",
+    "learning_rate": 0.0005,
+    "conv_drop_rate": 0.1,
+    "fc_drop_rate": 0.25,
+    "num_epochs": 50,
+    "num_conv": 4,
+    "batch_norm": false,
+    "no_dropout": false,
+    "batch_size": 256,
+    "random_seed": 3611475
+}

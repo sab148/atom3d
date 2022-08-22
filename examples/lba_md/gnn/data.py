@@ -3,26 +3,27 @@ import os
 import sys
 from tqdm import tqdm
 import torch
-from atom3d.util.transforms import prot_graph_transform, mol_graph_transform
-from atom3d.datasets import LMDBDataset
+from .atom3d.util.transforms import prot_graph_transform, mol_graph_transform
+from .atom3d.datasets import LMDBDataset
 from torch_geometric.data import Data, Dataset, DataLoader
 import atom3d.util.graph as gr
 
     
 class GNNTransformLBA(object):
-    def __init__(self, pocket_only=True):
+    def __init__(self, pocket_only=False):
         self.pocket_only = pocket_only
     
     def __call__(self, item):
         # transform protein and/or pocket to PTG graphs
-        if self.pocket_only:
-            item = prot_graph_transform(item, atom_keys=['atoms_pocket'], label_key='scores')
-        else:
-            item = prot_graph_transform(item, atom_keys=['atoms_protein', 'atoms_pocket'], label_key='scores')
+       
+        item = prot_graph_transform(item, atom_keys=['atoms_protein'], label_key='scores')
+        node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(item['atoms_protein'], allowable_feats=item['allowable_atoms']) 
+        item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+                                                                                   
         # transform ligand into PTG graph
-        item = mol_graph_transform(item, 'atoms_ligand', 'scores', use_bonds=True, onehot_edges=False)
-        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_pocket'], item['atoms_ligand'], edges_between=True)
-        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores']['neglog_aff'], pos=node_pos)
+        item = mol_graph_transform(item, 'atoms_ligand', 'scores', allowable_atoms=item['allowable_atoms'], use_bonds=True, onehot_edges=False)
+        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)
+        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
         return combined_graph
     
 

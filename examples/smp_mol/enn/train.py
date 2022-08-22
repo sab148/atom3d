@@ -28,7 +28,7 @@ def main():
     # Initialize logger
     init_logger(args)
     # Initialize device and data type
-    device, dtype = init_cuda(args)
+    # device, dtype = init_cuda(args)
     # Initialize dataloader
     args, datasets, num_species, charge_scale = initialize_smp_data(args, args.datadir) 
     # Construct PyTorch dataloaders from datasets

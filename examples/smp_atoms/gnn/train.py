@@ -7,13 +7,14 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 # import seaborn as sns
+from data import GNNTransformSMP
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch_geometric.loader import DataLoader
 from model import GNN_SMP
 # from data import GNNTransformSMP
-from atom3d.datasets import LMDBDataset, MolH5Dataset
+from atom3d.datasets import LMDBDataset, MolH5Dataset, ProtMolH5Dataset
 
 def train_loop(model, loader, optimizer, device):
     model.train()
@@ -24,7 +25,8 @@ def train_loop(model, loader, optimizer, device):
         data = data.to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.mse_loss(output, data.y["Electron_Affinity"])
+        loss = F.mse_loss(output, data.y)
+
         loss.backward()
         loss_all += loss.item() * data.num_graphs
         total += data.num_graphs
@@ -41,10 +43,10 @@ def test(model, loader, device):
     for data in loader:
         data = data.to(device)
         output=model(data)
-        loss = F.l1_loss(output, data.y["Electron_Affinity"])  # MAE
+        loss = F.l1_loss(output, data.y)  # MAE
         loss_all += loss.item() * data.num_graphs
         total += data.num_graphs
-        y_true.extend([x.item() for x in data.y["Electron_Affinity"]])
+        y_true.extend([x.item() for x in data.y])
         y_pred.extend(output.tolist())
     return loss_all / total, y_true, y_pred
 
@@ -56,16 +58,23 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     # logger = logging.getLogger('lba')
     # logger.basicConfig(filename=os.path.join(log_dir, f'train_{split}_cv{fold}.log'),level=logging.INFO)
 
+    # h5_file = "/p/project/hai_drug_qm/atom3d/examples/lba_md/data/h5/MD_dataset_with_names.hdf5" #/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/h5/qm.hdf5"
+
+    # train_idx = "/p/project/hai_drug_qm/atom3d/examples/lba_md/data/mol_split/train.txt" #"/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/train.txt"
+    # val_idx = "/p/project/hai_drug_qm/atom3d/examples/lba_md/data/mol_split/val.txt" #"/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/val.txt"
+    # test_idx = "/p/project/hai_drug_qm/atom3d/examples/lba_md/data/mol_split/test.txt" #"/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/test.txt"
+    
     h5_file = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/h5/qm.hdf5"
 
     train_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/train.txt"
     val_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/val.txt"
     test_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/test.txt"
 
-    train_dataset = MolH5Dataset(h5_file, train_idx, transform=None)
-    val_dataset = MolH5Dataset(h5_file, val_idx, transform=None)
-    test_dataset = MolH5Dataset(h5_file, test_idx, transform=None)
     
+    train_dataset = MolH5Dataset(h5_file, train_idx, transform=GNNTransformSMP(args.target_name))
+    val_dataset = MolH5Dataset(h5_file, val_idx, transform=GNNTransformSMP(args.target_name))
+    test_dataset = MolH5Dataset(h5_file, test_idx, transform=GNNTransformSMP(args.target_name))
+     
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True, num_workers=4)
     val_loader = DataLoader(val_dataset, args.batch_size, shuffle=False, num_workers=4)
     test_loader = DataLoader(test_dataset, args.batch_size, shuffle=False, num_workers=4)
@@ -74,11 +83,12 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     for data in train_loader:
         
         num_features = data.num_features
-        print(count)
+        
         count += 1
         break
 
     model = GNN_SMP(num_features, dim=args.hidden_dim).to(device)
+    
     model.to(device)
 
     best_val_loss = 999
@@ -126,9 +136,9 @@ def train(args, device, log_dir, rep=None, test_mode=False):
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--target_name', type=str)
+    parser.add_argument('--target_name', type=str, default="gfn2_polarisation")
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--batch_size', type=int, default=1000)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--hidden_dim', type=int, default=64)
     parser.add_argument('--num_epochs', type=int, default=300)
     parser.add_argument('--learning_rate', type=float, default=1e-3)

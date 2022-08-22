@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --output=/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/output/interaction_energy/gnn.out
 #SBATCH --error=/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/output/interaction_energy/gnn.err
-#SBATCH --time=04:00:00
+#SBATCH --time=02:00:00
 #SBATCH --partition=booster
 #SBATCH --gres=gpu:4
 #SBATCH --account=hai_drug_qm

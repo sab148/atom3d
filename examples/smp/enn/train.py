@@ -28,8 +28,9 @@ def main():
     # Initialize logger
     init_logger(args)
     # Initialize device and data type
-    device, dtype = init_cuda(args)
+    # device, dtype = init_cuda(args)
     # Initialize dataloader
+    args.datadir = "/p/project/hai_drug_qm/atom3d_test/raw/QM9/data/"
     args, datasets, num_species, charge_scale = initialize_smp_data(args, args.datadir) 
     # Construct PyTorch dataloaders from datasets
     dataloaders = {split: DataLoader(dataset, batch_size=args.batch_size,
@@ -41,8 +42,7 @@ def main():
                     args.cutoff_type, args.hard_cut_rad, args.soft_cut_rad, args.soft_cut_width,
                     args.weight_init, args.level_gain, args.charge_power, args.basis_set,
                     charge_scale, args.gaussian_mask,
-                    args.top, args.input, args.num_mpnn_levels,
-                    device=device, dtype=dtype)
+                    args.top, args.input, args.num_mpnn_levels)
     # Initialize the scheduler and optimizer
     optimizer = init_optimizer(args, model)
     scheduler, restart_epochs = init_scheduler(args, optimizer)

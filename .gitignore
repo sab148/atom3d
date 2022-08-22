@@ -99,4 +99,10 @@ atom3d/data/__pycache__/
 examples/???/???/model/
 examples/???/???/predict/
 
+
 sc_venv_template/
+sc_venv_template2/
+/p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/outputs/electron_affinity/
+/p/project/hai_drug_qm/atom3d/examples/smp_mol/cnn3d/logs/smp/
+/p/project/hai_drug_qm/atom3d/examples/smp_mol/gnn/outputs/
+/p/project/hai_drug_qm/atom3d/examples/smp_mol/gnn/logs/

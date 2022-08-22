@@ -1,0 +1,20 @@
+The following modules were not unloaded:
+  (Use "module --force purge" to unload all):
+
+  1) Stages/2022
+Setting HOROVOD_MPI_THREADS_DISABLE=1. 
+/var/spool/parastation/jobs/6003871: line 15: CUDA_VISIBLE_DEVICES: command not found
+Beginning training on CUDA/GPU! Device: 0
+Traceback (most recent call last):
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/train.py", line 63, in <module>
+    main()
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/train.py", line 33, in main
+    args, datasets, num_species, charge_scale = initialize_smp_data(args, args.datadir) 
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/data.py", line 148, in initialize_smp_data
+    datasets = _load_smp_data(datafiles)
+  File "/p/project/hai_drug_qm/atom3d/examples/smp_mol/enn/data.py", line 189, in _load_smp_data
+    dsdict = extract_coordinates_as_numpy_arrays(dataset, atom_frames=['atoms'])
+  File "/p/project/hai_drug_qm/atom3d/atom3d/datasets/datasets.py", line 852, in extract_coordinates_as_numpy_arrays
+    element = atoms_to_keep['element'][ia].title()
+AttributeError: 'numpy.float32' object has no attribute 'title'
+srun: error: jwb0085: task 0: Exited with exit code 1

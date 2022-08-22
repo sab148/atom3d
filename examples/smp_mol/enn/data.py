@@ -7,7 +7,7 @@ import scipy.spatial
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader
-from atom3d.datasets import LMDBDataset, extract_coordinates_as_numpy_arrays
+from atom3d.datasets import LMDBDataset, extract_coordinates_as_numpy_arrays, MolH5Dataset
 from utils import batch_stack, drop_zeros
 
 
@@ -136,7 +136,14 @@ def initialize_smp_data(args, datadir, splits = {'train':'train', 'valid':'val',
 
     """
     # Define data files.
-    datafiles = {split: os.path.join(datadir,splits[split]) for split in splits.keys()}
+    h5_file = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/h5/qm.hdf5"
+
+    train_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/train.txt"
+    val_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/val.txt"
+    test_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/mol_split/test.txt"
+    
+    datafiles = {"train":(h5_file, train_idx), "val":(h5_file, val_idx), "test":(h5_file, test_idx)}
+    # datafiles = {split: os.path.join(datadir,splits[split]) for split in splits.keys()}
     # Load datasets
     datasets = _load_smp_data(datafiles)
     # Check the training/test/validation splits have the same set of keys.
@@ -177,7 +184,7 @@ def _load_smp_data(datafiles):
     """
     datasets = {}
     for split, datafile in datafiles.items():
-        dataset = LMDBDataset(datafile)
+        dataset = MolH5Dataset(datafile[0], datafile[1])
         # Load original atoms
         dsdict = extract_coordinates_as_numpy_arrays(dataset, atom_frames=['atoms'])
         # Add the label data

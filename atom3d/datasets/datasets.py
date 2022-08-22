@@ -14,7 +14,7 @@ import subprocess
 import pickle 
 
 #import Bio.PDB
-#import lmdb
+# import lmdb
 import h5py
 import numpy as np
 import pandas as pd
@@ -28,7 +28,7 @@ except:
 
 import atom3d.util.rosetta as ar
 import atom3d.util.file as fi
-#import atom3d.util.formats as fo
+import atom3d.util.formats as fo
 from atom3d.util.transforms import mol_graph_transform, prot_graph_transform
 import atom3d.util.graph as gr
 
@@ -207,10 +207,9 @@ class ProtMolH5Dataset(Dataset):
             atoms_ligand["element"] = pitem["atoms_type"][:][-cutoff:]
 
             item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
+            item["atoms_protein"] = atoms_protein
+            item["allowable_atoms"] = self.atoms_type_name
 
-            node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(atoms_protein, allowable_feats=self.atoms_type_name)
-            item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
-            
         with h5py.File(self.qm_data_file, 'r') as f: 
             pitem = f[self.ids[pdb_idx]]
         
@@ -223,8 +222,8 @@ class ProtMolH5Dataset(Dataset):
                 
     #    transform ligand into PTG graph
 
-        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
-        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
+        #node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
+        #combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
             
             
 
@@ -236,7 +235,7 @@ class ProtMolH5Dataset(Dataset):
         #     print(self.ids[pdb_idx])
             
             
-        return combined_graph
+        return item
 
 class MolH5Dataset(Dataset):
     """
@@ -276,46 +275,49 @@ class MolH5Dataset(Dataset):
     def __getitem__(self, index: int):
         if not 0 <= index < len(self.ids):
             raise IndexError(index)
-
-        try :
-            with h5py.File(self.data_file, 'r') as f: 
-                pitem = f[self.ids[index]]
-                
-                column_names = ["x", "y", "z", "element"]
-
-                atoms = pd.DataFrame(columns = column_names)
-                atoms["x"] = pitem["atom_properties/data"][:][:,1]
-                
-                atoms["y"] = pitem["atom_properties/data"][:][:,2]
-                
-                atoms["z"] = pitem["atom_properties/data"][:][:,3]
-                
-                atoms["element"] = pitem["atom_properties/data"][:][:,0]
-
-                bonds = pitem["atom_properties/bonds"][:]
-                
-                scores = {"Electron_Affinity": torch.tensor(pitem["mol_properties/data"])[1],
-                    "Electronegativity" : torch.tensor(pitem["mol_properties/data"])[2],
-                    "Hardness" : torch.tensor(pitem["mol_properties/data"])[3],
-                    "Ionization_Potential" : torch.tensor(pitem["mol_properties/data"])[4],
-                    "Koopman" : torch.tensor(pitem["mol_properties/data"])[5]
-                    }
-
-            item = {"atoms" : atoms,
-            "scores": scores,
-            "bonds": bonds}
-            item = mol_graph_transform(item, "atoms", "scores", use_bonds=True, onehot_edges=True)
-            
-            if self._transform:
-                item = self._transform(item)
-                
-            return item["atoms"]
-        except :
-            print(self.ids[index])
-            
-            
         
+        # try :
+        with h5py.File(self.data_file, 'r') as f: 
+            pitem = f[self.ids[index]]
+            
+            column_names = ["x", "y", "z", "element"]
 
+            atoms = pd.DataFrame(columns = column_names)
+            atoms["x"] = pitem["atom_properties/data"][:][:,1]
+            
+            atoms["y"] = pitem["atom_properties/data"][:][:,2]
+            
+            atoms["z"] = pitem["atom_properties/data"][:][:,3]
+            
+            atoms["element"] = np.array([element.decode('utf-8') for element in pitem["atom_properties/atom_names"][:]])
+            
+            bonds = pitem["atom_properties/bonds"][:]
+            
+            scores = {"Electron_Affinity": torch.tensor(pitem["mol_properties/data"])[1],
+                "Electronegativity" : torch.tensor(pitem["mol_properties/data"])[2],
+                "Hardness" : torch.tensor(pitem["mol_properties/data"])[3],
+                "Ionization_Potential" : torch.tensor(pitem["mol_properties/data"])[4],
+                "Koopman" : torch.tensor(pitem["mol_properties/data"])[5],
+                "gfn2_polarisation" : pitem["atom_properties/data"][:][:,14],
+                "gfn2_polarisation_(wet_octanol)" : pitem["atom_properties/data"][:][:,15],
+                "gfn2_polarisation_(water)" : pitem["atom_properties/data"][:][:,16],
+                }
+
+        item = {"atoms" : atoms,
+        "labels": scores,
+        "bonds": bonds, 
+        "id": self.ids[index]}
+        
+        # item = mol_graph_transform(item, "atoms", "labels", use_bonds=True, onehot_edges=True)
+        
+        if self._transform:
+            item = self._transform(item)
+            # return item
+        
+        return item#["atoms"]
+        # except :
+        #     print(self.ids[index])
+            
 
 
 class LMDBDataset(Dataset):
@@ -818,6 +820,8 @@ def extract_coordinates_as_numpy_arrays(dataset, indices=None, atom_frames=['ato
     :return: Dictionary of numpy arrays with number of atoms, charges, and positions
     :rtype: dict
     """
+    print("strating")
+    print(len(dataset))
     # Size of the dataset
     if indices is None:
         indices = np.arange(len(dataset), dtype=int)
@@ -825,7 +829,7 @@ def extract_coordinates_as_numpy_arrays(dataset, indices=None, atom_frames=['ato
         indices = np.array(indices, dtype=int)
         assert len(dataset) > max(indices)
     num_items = len(indices)
-
+    print(num_items)
     # Calculate number of atoms for each molecule
     num_atoms = []
     for idx in indices:
@@ -834,7 +838,7 @@ def extract_coordinates_as_numpy_arrays(dataset, indices=None, atom_frames=['ato
         keep = np.array([el not in drop_elements for el in atoms['element']])
         num_atoms.append(sum(keep))
     num_atoms = np.array(num_atoms, dtype=int)
-
+    print(num_atoms)
     # All charges and position arrays have the same size
     arr_size  = np.max(num_atoms)
     charges   = np.zeros([num_items,arr_size])
@@ -849,8 +853,11 @@ def extract_coordinates_as_numpy_arrays(dataset, indices=None, atom_frames=['ato
         keep = np.array([el not in drop_elements for el in atoms['element']])
         atoms_to_keep = atoms[keep].reset_index(drop=True)
         # write per-atom data to arrays
+        print("atoms_to_keep", atoms_to_keep)
         for ia in range(num_atoms[j]):
-            element = atoms_to_keep['element'][ia].title()
+            print(atoms_to_keep['element'][ia])
+            element = atoms_to_keep['element'][ia] #.title()
+            print("charges",charges)
             charges[j,ia] = fo.atomic_number[element]
             positions[j,ia,0] = atoms_to_keep['x'][ia]
             positions[j,ia,1] = atoms_to_keep['y'][ia]

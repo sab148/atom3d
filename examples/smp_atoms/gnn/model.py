@@ -12,8 +12,8 @@ class GNN_SMP(torch.nn.Module):
         self.conv = NNConv(dim, dim, nn, aggr='mean')
         self.gru = GRU(dim, dim)
 
-        self.set2set = Set2Set(dim, processing_steps=3)
-        self.lin1 = torch.nn.Linear(2 * dim, dim)
+        # self.set2set = Set2Set(dim, processing_steps=3)
+        self.lin1 = torch.nn.Linear(dim, dim)
         self.lin2 = torch.nn.Linear(dim, 1)
 
     def forward(self, data):
@@ -25,7 +25,8 @@ class GNN_SMP(torch.nn.Module):
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)
 
-        out = self.set2set(out, data.batch)
+
+        # out = self.set2set(out, data.batch)
         out = F.relu(self.lin1(out))
         out = self.lin2(out)
         return out.view(-1)

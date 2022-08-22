@@ -80,6 +80,7 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     #     val_dataset = LMDBDataset(os.path.join(args.data_dir, 'val'), transform=transform)
     #     test_dataset = LMDBDataset(os.path.join(args.data_dir, 'test'), transform=transform)
 
+    transform=GNNTransformLBA()
 
     qmh5_file = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/smp_mol/data/qm/aeneas/h5/qm.hdf5"
     mdh5_file = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/MD_dataset_mapped.hdf5"
@@ -88,9 +89,9 @@ def train(args, device, log_dir, rep=None, test_mode=False):
     val_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/mol_split/val.txt"
     test_idx = "/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/mol_split/test.txt"
 
-    train_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, train_idx, transform=None)
-    val_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, val_idx, transform=None)
-    test_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, test_idx, transform=None)
+    train_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, train_idx, transform=transform)
+    val_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, val_idx, transform=transform)
+    test_dataset = ProtMolH5Dataset(qmh5_file, mdh5_file, test_idx, transform=transform)
     
     
     train_loader = DataLoader(train_dataset, args.batch_size, shuffle=True, num_workers=4)
