@@ -28,7 +28,7 @@ class GNNTransformSMP(object):
         return item["labels"][name]
 
     def __call__(self, item):
-        item = mol_graph_transform(item, 'atoms', 'labels', allowable_atoms=['H', 'C', 'O', 'N', 'F', 'P', 'S', 'Cl', 'B', 'Br', 'Cu', 'I', 'Fe', 'Be', 'Se', 'Ru', 'As', 'Si', 'Co', 'Mg', 'Zn', 'Ir', 'V', 'Pt', 'Os', 'Re', 'Sb', 'Rh', 'Te'] use_bonds=True, onehot_edges=True)
+        item = mol_graph_transform(item, 'atoms', 'labels', allowable_atoms=['H', 'C', 'O', 'N', 'F', 'P', 'S', 'Cl', 'B', 'Br', 'Cu', 'I', 'Fe', 'Be', 'Se', 'Ru', 'As', 'Si', 'Co', 'Mg', 'Zn', 'Ir', 'V', 'Pt', 'Os', 'Re', 'Sb', 'Rh', 'Te'], use_bonds=True, onehot_edges=True)
         graph = item['atoms']
      
         # x2 = torch.tensor(item['atom_feats'], dtype=torch.float).t().contiguous()
