@@ -64,13 +64,15 @@ class NativeProtMolH5Dataset(Dataset):
         with open(idx_file, 'r') as f:  # this file will keep all complexe
             self.ids = f.read().splitlines()
 
-        with open("/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
-            self.atoms_type_name = list(pickle.load(f).keys())
+        with open('/p/project/hai_drug_qm/atom3d/examples/lba_clean/data/pickles/pdbbind_labels.pickle', 'rb') as handle:
+            self.labels = pickle.load(handle)
+
+        with open("/p/project/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
+            self.atoms_ind_to_element = pickle.load(f)
+            self.atoms_element_to_ind = {v: k for k, v in self.atoms_ind_to_element.items()}
 
         self.use_bonds = use_bonds
         self._transform = transform
-
-
 
     def __len__(self) -> int:
         return len(self.ids)
@@ -82,11 +84,10 @@ class NativeProtMolH5Dataset(Dataset):
         if not 0 <= (index) < len(self.ids):
             raise IndexError(index)
 
-        pdb_idx = index
         item = {}
         # try :
         with h5py.File(self.md_data_file, 'r') as f: 
-            pitem = f[self.ids[pdb_idx]]
+            pitem = f[self.ids[index]]
             cutoff = pitem["molecules_begin_atom_index"][:][-1]
                 
             column_names = ["x", "y", "z", "element"]
@@ -95,35 +96,38 @@ class NativeProtMolH5Dataset(Dataset):
 
             atoms_ligand = pd.DataFrame(columns = column_names)
 
-            atoms_protein["x"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 0]
-            atoms_protein["y"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 1]
-            atoms_protein["z"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 2]
+            atoms_protein["x"] = pitem["trajectory_coordinates"][:][0, :cutoff, 0]
+            atoms_protein["y"] = pitem["trajectory_coordinates"][:][0, :cutoff, 1]
+            atoms_protein["z"] = pitem["trajectory_coordinates"][:][0, :cutoff, 2]
             atoms_protein["element"] = pitem["atoms_type"][:][:cutoff]
 
-            atoms_ligand["x"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 0]
-            atoms_ligand["y"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 1]
-            atoms_ligand["z"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 2]
+            atoms_ligand["x"] = pitem["trajectory_coordinates"][:][0, -cutoff:, 0]
+            atoms_ligand["y"] = pitem["trajectory_coordinates"][:][0, -cutoff:, 1]
+            atoms_ligand["z"] = pitem["trajectory_coordinates"][:][0, -cutoff:, 2]
             atoms_ligand["element"] = pitem["atoms_type"][:][-cutoff:]
 
-            item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
-
-            node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(atoms_protein, allowable_feats=self.atoms_type_name)
-            item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
-            
-        with h5py.File(self.qm_data_file, 'r') as f: 
-            pitem = f[self.ids[pdb_idx]]
+            #item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
+            item["scores"] = self.labels[self.ids[index]]
+            #node_feats, edge_index, edge_feats, pos = gr.prot_df_to_graph(atoms_protein, allowable_feats=self.atoms_type_name)
+            #item["atoms_protein"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+            item["atoms_protein"] = atoms_protein
+            item["allowable_atoms"] = list(self.atoms_element_to_ind.keys())
+            item['id'] = self.ids[index]
         
-            if self.use_bonds:
+        with h5py.File(self.qm_data_file, 'r') as f: 
+            pitem = f[self.ids[index]]
+        
+            if "atom_properties/bonds" in pitem:
                 bonds = pitem["atom_properties/bonds"][:]
             else:
                 bonds = None
-            node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(atoms_ligand, bonds=bonds, onehot_edges=False, allowable_atoms=self.atoms_type_name)
-            item["atoms_ligand"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+            item['bonds'] = bonds
+            item["atoms_ligand"] = atoms_ligand
                 
     #    transform ligand into PTG graph
 
-        node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
-        combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
+        #node_feats, edges, edge_feats, node_pos = gr.combine_graphs(item['atoms_protein'], item['atoms_ligand'], edges_between=True)  
+        #combined_graph = Data(node_feats, edges, edge_feats, y=item['scores'], pos=node_pos)
             
             
 
@@ -135,7 +139,7 @@ class NativeProtMolH5Dataset(Dataset):
         #     print(self.ids[pdb_idx])
             
             
-        return combined_graph
+        return item
 
 class ProtMolH5Dataset(Dataset):
     """
@@ -165,9 +169,9 @@ class ProtMolH5Dataset(Dataset):
         with open(idx_file, 'r') as f:  # this file will keep all complexe
             self.ids = f.read().splitlines()
 
-        with open("/p/home/jusers/benassou1/juwels/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
-            self.atoms_type_name = list(pickle.load(f).keys())
-
+        with open("/p/project/hai_drug_qm/atom3d/examples/lba_md/data/pickles/atoms_type_map.pickle", "rb") as f:
+            self.atoms_ind_to_element = pickle.load(f)
+            self.atoms_element_to_ind = {v: k for k, v in self.atoms_ind_to_element.items()}
         self.use_bonds = use_bonds
         self._transform = transform
 
@@ -185,6 +189,7 @@ class ProtMolH5Dataset(Dataset):
 
         pdb_idx = index // 100 
         item = {}
+        
         # try :
         with h5py.File(self.md_data_file, 'r') as f: 
             pitem = f[self.ids[pdb_idx]]
@@ -200,25 +205,31 @@ class ProtMolH5Dataset(Dataset):
             atoms_protein["y"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 1]
             atoms_protein["z"] = pitem["trajectory_coordinates"][:][(index % 100), :cutoff, 2]
             atoms_protein["element"] = pitem["atoms_type"][:][:cutoff]
+            atoms_protein.replace({"element": self.atoms_ind_to_element},inplace=True)
 
             atoms_ligand["x"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 0]
             atoms_ligand["y"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 1]
             atoms_ligand["z"] = pitem["trajectory_coordinates"][:][(index % 100), -cutoff:, 2]
             atoms_ligand["element"] = pitem["atoms_type"][:][-cutoff:]
-
+            atoms_ligand.replace({"element": self.atoms_ind_to_element},inplace=True)
+            
             item["scores"] = pitem["frames_interaction_energy"][:][index % 100]
             item["atoms_protein"] = atoms_protein
-            item["allowable_atoms"] = self.atoms_type_name
+            item["allowable_atoms"] = list(self.atoms_element_to_ind.keys())
+            item['id'] = self.ids[pdb_idx]
 
         with h5py.File(self.qm_data_file, 'r') as f: 
             pitem = f[self.ids[pdb_idx]]
         
-            if self.use_bonds:
+            if "atom_properties/bonds" in pitem:
                 bonds = pitem["atom_properties/bonds"][:]
             else:
                 bonds = None
-            node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(atoms_ligand, bonds=bonds, onehot_edges=False, allowable_atoms=self.atoms_type_name)
-            item["atoms_ligand"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
+            item['bonds'] = bonds
+            item["atoms_ligand"] = atoms_ligand
+            #node_feats, edge_index, edge_feats, pos = gr.mol_df_to_graph(atoms_ligand, bonds=bonds, onehot_edges=False, allowable_atoms=self.atoms_type_name)
+            
+            #item["atoms_ligand"] = Data(node_feats, edge_index, edge_feats, y=item["scores"], pos=pos)
                 
     #    transform ligand into PTG graph
 
@@ -248,7 +259,7 @@ class MolH5Dataset(Dataset):
 
     """
 
-    def __init__(self, data_file, idx_file, transform=None):
+    def __init__(self, data_file, idx_file, target, transform=None):
         """constructor
 
         """
@@ -258,11 +269,22 @@ class MolH5Dataset(Dataset):
             data_file = data_file[0]
 
         self.data_file = Path(data_file).absolute()
+        print(self.data_file)
         if not self.data_file.exists():
             raise FileNotFoundError(self.data_file)
 
         with open(idx_file, 'r') as f:  # this file will keep all complexe
             self.ids = f.read().splitlines()
+
+        self.f = h5py.File(self.data_file, 'r') 
+        self.target = target
+        self.target_dict = {
+            "Electron_Affinity" : 1,
+            "Electronegativity" : 2,
+            "Hardness" : 3,
+            "Ionization_Potential" : 4,
+            "Koopman" : 5
+        }
 
         self._transform = transform
 
@@ -275,49 +297,34 @@ class MolH5Dataset(Dataset):
     def __getitem__(self, index: int):
         if not 0 <= index < len(self.ids):
             raise IndexError(index)
-        
-        # try :
-        with h5py.File(self.data_file, 'r') as f: 
-            pitem = f[self.ids[index]]
-            
-            column_names = ["x", "y", "z", "element"]
 
-            atoms = pd.DataFrame(columns = column_names)
-            atoms["x"] = pitem["atom_properties/data"][:][:,1]
-            
-            atoms["y"] = pitem["atom_properties/data"][:][:,2]
-            
-            atoms["z"] = pitem["atom_properties/data"][:][:,3]
-            
-            atoms["element"] = np.array([element.decode('utf-8') for element in pitem["atom_properties/atom_names"][:]])
-            
-            bonds = pitem["atom_properties/bonds"][:]
-            
-            scores = {"Electron_Affinity": torch.tensor(pitem["mol_properties/data"])[1],
-                "Electronegativity" : torch.tensor(pitem["mol_properties/data"])[2],
-                "Hardness" : torch.tensor(pitem["mol_properties/data"])[3],
-                "Ionization_Potential" : torch.tensor(pitem["mol_properties/data"])[4],
-                "Koopman" : torch.tensor(pitem["mol_properties/data"])[5],
-                "gfn2_polarisation" : pitem["atom_properties/data"][:][:,14],
-                "gfn2_polarisation_(wet_octanol)" : pitem["atom_properties/data"][:][:,15],
-                "gfn2_polarisation_(water)" : pitem["atom_properties/data"][:][:,16],
-                }
+        pitem = self.f[self.ids[index]]
+        
+        column_names = ["x", "y", "z", "element"]
+
+        atoms = pd.DataFrame(columns = column_names)
+        prop = pitem["atom_properties/data"][:]
+        atoms["x"] = prop[:,1]
+        
+        atoms["y"] = prop[:,2]
+        
+        atoms["z"] = prop[:,3]
+        
+        atoms["element"] = np.array([element.decode('utf-8') for element in pitem["atom_properties/atom_names"][:]])
+        
+        bonds = pitem["atom_properties/bonds"][:]
+        
+        scores = torch.tensor(pitem["mol_properties/data"])[self.target_dict[self.target]]
 
         item = {"atoms" : atoms,
         "labels": scores,
         "bonds": bonds, 
         "id": self.ids[index]}
-        
-        # item = mol_graph_transform(item, "atoms", "labels", use_bonds=True, onehot_edges=True)
-        
+ 
         if self._transform:
             item = self._transform(item)
-            # return item
-        
-        return item#["atoms"]
-        # except :
-        #     print(self.ids[index])
-            
+           
+        return item
 
 
 class LMDBDataset(Dataset):

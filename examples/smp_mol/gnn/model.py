@@ -25,6 +25,7 @@ class GNN_SMP(torch.nn.Module):
             out, h = self.gru(m.unsqueeze(0), h)
             out = out.squeeze(0)
 
+        print("data", out.get_device())
         out = self.set2set(out, data.batch)
         out = F.relu(self.lin1(out))
         out = self.lin2(out)
